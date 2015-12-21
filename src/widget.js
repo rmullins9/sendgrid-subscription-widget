@@ -480,7 +480,6 @@ var jsonParse = (function () {
 
 		widget.setAttribute("data-executed", "true");
 
-
 		if( checkDefault("css", widget, d) && !document.getElementById(c + '-css') ){
 			var css = document.createElement('link');
 			css.setAttribute('id', c + '-css');
