@@ -186,7 +186,8 @@ var jsonParse = (function () {
 	// Defaults
 	var d = {
 		css : true,
-		messages : true
+		messages : true,
+		defaultTemplate : true
 	};
 
 	if(typeof(window.hasOwnProperty) == "undefined") {
@@ -460,21 +461,23 @@ var jsonParse = (function () {
 		return (w.getAttribute("data-" + name) ? textToBool(w.getAttribute("data-" + name)) : d[name]);
 	},
 
-	widgets = [];
+	//avoid iterating over every single div in the DOM ( will not work on IE8 )
+	widgets = document.getElementsByClassName(c);
 
-	_each(document.getElementsByTagName("div"), function (div) {
+	/*_each(document.getElementsByTagName("div"), function (div) {
 		var classes = div.className.split(" ");
 
 		if(_indexOf(classes, c) !== -1){
 			widgets.push(div);
 		}
-	});
+	});*/
 
 	_each(widgets, function (widget) {
 
 		if(widget.getAttribute("data-executed") === "true"){
 			return;
 		}
+
 		widget.setAttribute("data-executed", "true");
 
 
@@ -487,20 +490,34 @@ var jsonParse = (function () {
 			document.getElementsByTagName('head')[0].appendChild(css);
 		}
 
+		//extract innerHTML
 		var widgetInner = widget.innerHTML;
 		widget.innerHTML = '';
 		var form = document.createElement('form');
 
+		var formClasses = widget.getAttribute("data-form-classes");
+		if( formClasses ) {
+			formClasses = formClasses.replace(',', '');
+			form.setAttribute('class', formClasses );
+		}
+
 		var submitText = widget.getAttribute("data-submit-text") || "Subscribe";
-		
-		form.innerHTML = '<div class="response"></div>' + widgetInner + '<label><span>Email</span><input type="email" name="email" placeholder="you@example.com"></label><input type="submit" value="' + submitText  + '">';
+
+		//append default template around innerHTML, OR preserve the innerHTML as the custom template
+		if( checkDefault("default-template", widget, d) ){
+			var formTemplate = '<div class="response"></div>' + widgetInner + '<label><span>Email</span><input type="email" name="email" placeholder="you@example.com"></label><input type="submit" value="' + submitText  + '">';
+		} else {
+			var formTemplate = widgetInner;
+		}
+
+		form.innerHTML = formTemplate;
 		widget.appendChild(form);
 
 		var messages = {
 			"Your request cannot be processed." : widget.getAttribute("data-message-unprocessed") || "Unfortunately, an error occurred. Please contact us to subscribe.",
 			"The email address is invalid." : widget.getAttribute("data-message-invalid") || "The email you provided is not a valid email address. Please fix it and try again.",
 			"You have subscribed to this Marketing Email." : widget.getAttribute("data-message-success") || "Thanks for subscribing."
-    }
+    	}
 
 		form.addCustomEventListener("submit", function (e) {
 			form = e.srcElement ? e.srcElement : e.target;
